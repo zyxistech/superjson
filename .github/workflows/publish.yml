@@ -1,0 +1,33 @@
+name: Publish package to GitHub Packages
+on:
+  release:
+    types: [published]
+
+env:
+  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      # Setup .npmrc file to publish to GitHub Packages
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://npm.pkg.github.com"
+          # Defaults to the user or organization that owns the workflow file
+          scope: "@zyxistech"
+      - run: npm i
+      - run: npm run build
+      - run: npm test
+      #check if release is a prerelease and if so, publish to npm with tag beta else publish to npm with tag latest
+      - run: |
+          if [[ ${{ github.event.release.prerelease }} == 'true' ]]; then
+            npm publish --tag pre-${{ github.event.release.tag_name }}
+          else
+            npm publish
+          fi
